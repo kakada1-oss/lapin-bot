@@ -1,16 +1,18 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-const ACCENT = "#FF3B3B";
-const DARK = "#0a0a0a";
-const CARD = "#141414";
-const BORDER = "#2a2a2a";
+const ACCENT = "#ffffff";
+const DARK = "#111111";
+const CARD = "#191919";
+const BORDER = "#2b2b2b";
+const TEXT_MAIN = "#efefef";
+const TEXT_MUTED = "#888888";
 
 const styles = {
   app: {
     minHeight: "100vh",
     background: DARK,
-    color: "#fff",
-    fontFamily: "'DM Mono', 'Courier New', monospace",
+    color: TEXT_MAIN,
+    fontFamily: "'Inter', sans-serif",
     padding: "0",
     display: "flex",
     flexDirection: "column",
@@ -23,7 +25,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    background: "#0d0d0d",
+    background: CARD,
   },
   headerLeft: {
     display: "flex",
@@ -31,78 +33,84 @@ const styles = {
     gap: 12,
   },
   logo: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 700,
-    letterSpacing: "0.08em",
-    color: "#fff",
+    letterSpacing: "0.02em",
+    color: TEXT_MAIN,
+    fontFamily: "'Playfair Display', serif",
   },
-  logoAccent: { color: ACCENT },
+  logoAccent: { color: TEXT_MUTED, fontWeight: 400 },
   badge: {
-    background: ACCENT,
-    color: "#fff",
+    background: "#2a2a2a",
+    color: TEXT_MAIN,
     fontSize: 10,
-    fontWeight: 700,
-    padding: "2px 7px",
-    borderRadius: 4,
-    letterSpacing: "0.1em",
+    fontWeight: 600,
+    padding: "2px 8px",
+    borderRadius: 12,
+    letterSpacing: "0.05em",
   },
   settingsBtn: {
     background: "transparent",
     border: `1px solid ${BORDER}`,
-    color: "#ccc",
+    color: TEXT_MAIN,
     borderRadius: 6,
-    padding: "6px 12px",
-    fontSize: 12,
+    padding: "8px 14px",
+    fontSize: 13,
+    fontWeight: 500,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
-    gap: 6
+    gap: 6,
+    transition: "background 0.2s"
   },
   main: {
     width: "100%",
     maxWidth: 680,
-    padding: "36px 20px 60px",
+    padding: "40px 20px 80px",
     display: "flex",
     flexDirection: "column",
-    gap: 24,
+    gap: 28,
   },
   settingsCard: {
-    background: "#111",
-    border: `1px dashed ${BORDER}`,
-    borderRadius: 12,
-    padding: "20px",
+    background: CARD,
+    border: `1px solid ${BORDER}`,
+    borderRadius: 8,
+    padding: "24px",
     display: "flex",
     flexDirection: "column",
-    gap: 12,
+    gap: 16,
+    boxShadow: "0 2px 10px rgba(0,0,0,0.5)"
   },
   settingsHeader: {
-    fontSize: 12,
-    letterSpacing: "0.1em",
-    color: "#888",
+    fontSize: 13,
+    fontWeight: 600,
+    color: TEXT_MAIN,
     textTransform: "uppercase",
+    letterSpacing: "0.05em",
     marginBottom: 8,
   },
   uploadZone: {
-    border: `2px dashed ${BORDER}`,
-    borderRadius: 12,
-    padding: "40px 20px",
+    border: `1px dashed #444`,
+    borderRadius: 8,
+    padding: "48px 20px",
     textAlign: "center",
     cursor: "pointer",
     transition: "border-color 0.2s, background 0.2s",
     background: CARD,
     position: "relative",
     overflow: "hidden",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.3)"
   },
   uploadZoneActive: {
     borderColor: ACCENT,
-    background: "#1a0a0a",
+    background: "#222222",
   },
-  uploadIcon: { fontSize: 36, marginBottom: 10 },
-  uploadText: { fontSize: 14, color: "#888", lineHeight: 1.6 },
-  uploadBold: { color: "#fff", fontWeight: 700 },
+  uploadIcon: { fontSize: 32, marginBottom: 12, opacity: 0.8 },
+  uploadText: { fontSize: 14, color: TEXT_MUTED, lineHeight: 1.6 },
+  uploadBold: { color: TEXT_MAIN, fontWeight: 600 },
   previewWrap: {
     position: "relative",
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: "hidden",
     background: CARD,
     border: `1px solid ${BORDER}`,
@@ -112,131 +120,140 @@ const styles = {
     maxHeight: 380,
     objectFit: "contain",
     display: "block",
-    background: "#111",
+    background: "#111111",
   },
   changeBtn: {
     position: "absolute",
     top: 10,
     right: 10,
-    background: "rgba(0,0,0,0.7)",
+    background: CARD,
     border: `1px solid ${BORDER}`,
-    color: "#ccc",
+    color: TEXT_MAIN,
     fontSize: 11,
-    padding: "5px 12px",
-    borderRadius: 6,
+    padding: "6px 12px",
+    borderRadius: 4,
     cursor: "pointer",
+    fontWeight: 500,
+    boxShadow: "0 2px 4px rgba(0,0,0,0.4)"
   },
   card: {
     background: CARD,
     border: `1px solid ${BORDER}`,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: "hidden",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.4)"
   },
   cardHeader: {
-    padding: "14px 20px",
+    padding: "16px 20px",
     borderBottom: `1px solid ${BORDER}`,
-    fontSize: 11,
-    letterSpacing: "0.12em",
-    color: "#666",
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: "0.05em",
+    color: TEXT_MAIN,
     textTransform: "uppercase",
   },
   fieldRow: {
     display: "flex",
     flexDirection: "column",
     gap: 8,
-    padding: "16px 20px",
+    padding: "20px",
     borderBottom: `1px solid ${BORDER}`,
   },
   textarea: {
     background: "transparent",
     border: "none",
-    color: "#fff",
-    fontSize: 14,
+    color: TEXT_MAIN,
+    fontSize: 15,
     lineHeight: 1.6,
     fontFamily: "inherit",
     outline: "none",
     width: "100%",
-    minHeight: 140,
+    minHeight: 120,
     resize: "vertical",
   },
-  label: { fontSize: 11, color: "#777", textTransform: "uppercase", letterSpacing: "0.08em" },
+  label: { fontSize: 12, fontWeight: 600, color: TEXT_MUTED, textTransform: "uppercase", letterSpacing: "0.05em" },
   input: {
-    background: "#0d0d0d",
+    background: "#1c1c1c",
     border: `1px solid ${BORDER}`,
-    color: "#fff",
-    fontSize: 13,
+    color: TEXT_MAIN,
+    fontSize: 14,
     fontFamily: "inherit",
     outline: "none",
     width: "100%",
-    padding: "10px 14px",
+    padding: "12px 14px",
     borderRadius: 6,
+    transition: "border-color 0.2s"
   },
   buttonRow: {
     display: "flex",
-    gap: 10,
+    gap: 12,
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   removeBtn: {
     background: "transparent",
-    border: `1px solid ${BORDER}`,
-    color: "#ff3b3b",
-    width: 38,
-    height: 38,
+    border: `1px solid #3a1a1a`,
+    color: "#fc8181",
+    width: 42,
+    height: 42,
     borderRadius: 6,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
     flexShrink: 0,
-    fontSize: 16,
+    fontSize: 18,
+    transition: "background 0.2s"
   },
   addBtn: {
     background: "transparent",
-    border: `1px dashed ${BORDER}`,
-    color: "#888",
-    padding: "12px",
+    border: `1px dashed #444`,
+    color: TEXT_MUTED,
+    padding: "14px",
     borderRadius: 6,
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: 500,
     width: "100%",
     textAlign: "center",
-    marginTop: 4,
-    transition: "color 0.2s, border-color 0.2s"
+    marginTop: 8,
+    transition: "color 0.2s, border-color 0.2s, background 0.2s"
   },
   sendBtn: {
     background: ACCENT,
-    color: "#fff",
+    color: "#000",
     border: "none",
-    borderRadius: 8,
+    borderRadius: 6,
     padding: "16px 24px",
-    fontSize: 14,
-    fontWeight: 700,
-    letterSpacing: "0.08em",
+    fontSize: 15,
+    fontWeight: 600,
+    letterSpacing: "0.02em",
     cursor: "pointer",
     width: "100%",
-    transition: "opacity 0.2s, transform 0.1s",
-    marginTop: 20,
+    transition: "opacity 0.2s, transform 0.1s, background 0.2s",
+    marginTop: 24,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10
+    gap: 10,
+    boxShadow: "0 4px 12px rgba(255,255,255,0.05)"
   },
-  sendBtnDisabled: { opacity: 0.5, cursor: "not-allowed" },
+  sendBtnDisabled: { opacity: 0.5, cursor: "not-allowed", boxShadow: "none" },
   statusBox: {
-    padding: "14px 16px",
-    borderRadius: 8,
-    fontSize: 13,
+    padding: "16px",
+    borderRadius: 6,
+    fontSize: 14,
     marginTop: 16,
-    textAlign: "center"
+    textAlign: "center",
+    fontWeight: 500
   },
-  errorBox: { background: "#1a0808", border: `1px solid #4a1a1a`, color: "#ff7b7b" },
-  successBox: { background: "#0f2a0f", border: `1px solid #2a5c2a`, color: "#4caf50" },
+  errorBox: { background: "#3a1a1a", border: `1px solid #5a2a2a`, color: "#fc8181" },
+  successBox: { background: "#1a3a1a", border: `1px solid #2a5a2a`, color: "#68d391" },
   loader: {
-    width: 16,
-    height: 16,
-    border: "2px solid rgba(255,255,255,0.3)",
-    borderTop: `2px solid #fff`,
+    width: 18,
+    height: 18,
+    border: "2px solid rgba(0,0,0,0.1)",
+    borderTop: `2px solid #000`,
     borderRadius: "50%",
     animation: "spin 0.7s linear infinite",
   },
@@ -427,7 +444,7 @@ const InteractiveCell = ({ file, transform, onChange, style }) => {
         ...style,
         position: 'relative',
         overflow: 'hidden',
-        background: '#111',
+        background: '#111111',
         cursor: 'grab',
         touchAction: 'none'
       }}
@@ -712,17 +729,17 @@ export default function App() {
   return (
     <div style={styles.app}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         * { box-sizing: border-box; }
         input:focus { border-color: ${ACCENT} !important; }
         textarea:focus { outline: none; }
         button:active { transform: scale(0.98); }
-        ::selection { background: #ff3b3b44; }
+        ::selection { background: #333333; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0d0d0d; }
-        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
-        .hover-btn:hover { color: #fff; border-color: #666 !important; }
+        ::-webkit-scrollbar-track { background: #111111; }
+        ::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+        .hover-btn:hover { color: #fff; border-color: #666 !important; background: #222222; }
       `}</style>
 
       <div style={styles.header}>
@@ -797,12 +814,12 @@ export default function App() {
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
           >
-            <div style={styles.uploadIcon}>📸</div>
+            <div style={{...styles.uploadIcon, color: TEXT_MAIN}}>⌘</div>
             <div style={styles.uploadText}>
-              <span style={styles.uploadBold}>Drop product image(s) here</span>
+              <span style={styles.uploadBold}>Drop order image(s) here</span>
               <br />or click to browse
               <br />
-              <span style={{ fontSize: 11, color: "#444", marginTop: 6, display: "block" }}>
+              <span style={{ fontSize: 11, color: TEXT_MUTED, marginTop: 6, display: "block" }}>
                 Select multiple (up to 10 max)
               </span>
             </div>
@@ -820,8 +837,8 @@ export default function App() {
             {/* Live Collage Preview */}
             {imgFiles.length === 1 && (
               <div style={{ ...styles.previewWrap, ...styles.card, border: `2px solid ${BORDER}` }}>
-                <img src={URL.createObjectURL(imgFiles[0])} alt="Preview" style={{ width: '100%', maxHeight: 380, objectFit: 'contain', display: 'block' }} />
-                <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: ACCENT }}>
+                <img src={URL.createObjectURL(imgFiles[0])} alt="Preview" style={{ width: '100%', maxHeight: 380, objectFit: 'contain', display: 'block', background: '#111111' }} />
+                <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.8)', border: `1px solid ${BORDER}`, padding: '4px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: '#fff' }}>
                   SINGLE IMAGE
                 </div>
               </div>
@@ -851,7 +868,7 @@ export default function App() {
                       setTransforms(prev => ({ ...prev, [fid]: newT }));
                     };
                     
-                    let cellStyle = { backgroundColor: '#111' };
+                    let cellStyle = { backgroundColor: '#111111' };
                     if (imgFiles.length === 3 && i === 0) {
                       cellStyle.gridRow = 'span 2';
                       cellStyle.aspectRatio = '1 / 2';
@@ -874,11 +891,11 @@ export default function App() {
                   <div style={{ position: 'relative', width: 100, height: 100, flexShrink: 0, borderRadius: 12, overflow: 'hidden', ...styles.card }}>
                     <img src={URL.createObjectURL(file)} alt={`Upload ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <button
-                      style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.8)', border: 'none', color: '#ff3b3b', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.8)', border: `1px solid ${BORDER}`, color: '#fff', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
                       onClick={() => removeImage(i)}
                       title="Remove Image"
                     >✕</button>
-                    <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.8)', color: '#fff', borderRadius: 4, padding: '2px 6px', fontSize: 9, fontWeight: 'bold' }}>
+                    <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.8)', border: `1px solid ${BORDER}`, color: '#fff', borderRadius: 4, padding: '2px 6px', fontSize: 9, fontWeight: 'bold' }}>
                       #{i + 1}
                     </div>
                   </div>
@@ -888,13 +905,13 @@ export default function App() {
                       <button
                         onClick={() => moveImageLeft(i)}
                         disabled={i === 0}
-                        style={{ flex: 1, padding: "4px 0", background: "transparent", border: `1px solid ${BORDER}`, color: i === 0 ? "#333" : "#888", borderRadius: 4, cursor: i === 0 ? "default" : "pointer" }}>
+                        style={{ flex: 1, padding: "4px 0", background: "transparent", border: `1px solid ${BORDER}`, color: i === 0 ? "#555" : "#fff", borderRadius: 4, cursor: i === 0 ? "default" : "pointer" }}>
                         ◀
                       </button>
                       <button
                         onClick={() => moveImageRight(i)}
                         disabled={i === imgFiles.length - 1}
-                        style={{ flex: 1, padding: "4px 0", background: "transparent", border: `1px solid ${BORDER}`, color: i === imgFiles.length - 1 ? "#333" : "#888", borderRadius: 4, cursor: i === imgFiles.length - 1 ? "default" : "pointer" }}>
+                        style={{ flex: 1, padding: "4px 0", background: "transparent", border: `1px solid ${BORDER}`, color: i === imgFiles.length - 1 ? "#555" : "#fff", borderRadius: 4, cursor: i === imgFiles.length - 1 ? "default" : "pointer" }}>
                         ▶
                       </button>
                     </div>
