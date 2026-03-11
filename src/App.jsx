@@ -388,6 +388,7 @@ const combineImages = async (files, transforms = {}) => {
 
 const InteractiveCell = ({ file, transform, onChange, style }) => {
   const cellRef = useRef();
+  const pinchStart = useRef({ dist: null, scale: null });
   
   const handleWheel = useCallback((e) => {
     e.preventDefault();
@@ -400,18 +401,65 @@ const InteractiveCell = ({ file, transform, onChange, style }) => {
   useEffect(() => {
     const el = cellRef.current;
     if (!el) return;
+
+    const onTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchStart.current = {
+          dist: Math.hypot(dx, dy),
+          scale: transform.scale || 1
+        };
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2 && pinchStart.current.dist) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const scaleFactor = dist / pinchStart.current.dist;
+        let newScale = pinchStart.current.scale * scaleFactor;
+        newScale = Math.max(0.5, Math.min(newScale, 5));
+        onChange({ ...transform, scale: newScale });
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        pinchStart.current = { dist: null, scale: null };
+      }
+    };
+
     const cw = (e) => handleWheel(e);
     el.addEventListener('wheel', cw, { passive: false });
-    return () => el.removeEventListener('wheel', cw);
-  }, [handleWheel]);
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      el.removeEventListener('wheel', cw);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [handleWheel, transform, onChange]);
 
   const handlePointerDown = (e) => {
+    if (!e.isPrimary) return;
+    
     const startX = e.clientX;
     const startY = e.clientY;
     const startTx = transform.x || 0;
     const startTy = transform.y || 0;
     
     const onPointerMove = (moveE) => {
+      if (pinchStart.current.dist) return; // skip panning if pinching
+      
       const rect = cellRef.current.getBoundingClientRect();
       const dx = moveE.clientX - startX;
       const dy = moveE.clientY - startY;
@@ -847,7 +895,7 @@ export default function App() {
             {imgFiles.length > 1 && (
               <div style={{ ...styles.card, padding: 10, display: 'flex', flexDirection: 'column', gap: 10, border: `2px solid ${BORDER}` }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.05em', color: '#888', textTransform: 'uppercase', textAlign: 'center', fontWeight: 'bold' }}>
-                  Grid Preview (Drag to pan, Scroll to zoom)
+                  Grid Preview (Pan: Drag, Zoom: Scroll / Pinch)
                 </div>
                 <div style={{
                   display: 'grid',
