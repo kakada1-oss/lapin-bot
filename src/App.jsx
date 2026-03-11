@@ -520,6 +520,7 @@ export default function App() {
   const [transforms, setTransforms] = useState({});
   const [dragging, setDragging] = useState(false);
   const [queue, setQueue] = useState([]);
+  const [editingId, setEditingId] = useState(null);
   const [sendingProgress, setSendingProgress] = useState(null);
 
   const [captionTemplate, setCaptionTemplate] = useState(() =>
@@ -639,7 +640,15 @@ export default function App() {
 
   const addToQueue = () => {
     if (imgFiles.length === 0) return setError("Please upload at least one image.");
-    setQueue(prev => [...prev, { id: Date.now(), imgFiles, transforms, caption, buttons }]);
+    
+    if (editingId) {
+      setQueue(prev => prev.map(q => q.id === editingId ? { ...q, imgFiles, transforms, caption, buttons } : q));
+      setEditingId(null);
+      setSuccess("Queue item updated!");
+    } else {
+      setQueue(prev => [...prev, { id: Date.now(), imgFiles, transforms, caption, buttons }]);
+      setSuccess(`Added to Queue! (${queue.length + 1} posts waiting)`);
+    }
 
     // Reset form perfectly
     setImgFiles([]);
@@ -650,8 +659,31 @@ export default function App() {
       { text: "📍 Location", url: "https://maps.app.goo.gl/fkgwF1ecwueAm2DS6" }
     ]);
 
-    setSuccess(`Added to Queue! (${queue.length + 1} posts waiting)`);
     setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const editQueueItem = (id) => {
+    const item = queue.find(q => q.id === id);
+    if (!item) return;
+
+    setImgFiles(item.imgFiles || []);
+    setTransforms(item.transforms || {});
+    setCaption(item.caption || captionTemplate);
+    setButtons(item.buttons || []);
+    
+    setEditingId(id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const removeQueueItem = (id) => {
+    setQueue(prev => prev.filter(q => q.id !== id));
+    if (editingId === id) {
+      setEditingId(null);
+      setImgFiles([]);
+      setTransforms({});
+      setCaption(captionTemplate);
+      setButtons([{ text: "🛒 Order here", url: "" }, { text: "📍 Location", url: "https://maps.app.goo.gl/fkgwF1ecwueAm2DS6" }]);
+    }
   };
 
   const processQueue = async () => {
@@ -1081,8 +1113,31 @@ export default function App() {
         {/* Send Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {queue.length > 0 && (
-            <div style={{ fontSize: 13, background: "#1a1a1a", border: `1px dashed ${BORDER}`, padding: "12px 16px", borderRadius: 8, color: "#aaa", textAlign: "center" }}>
-              <strong style={{ color: "#fff", marginRight: 6 }}>{queue.length} Post{queue.length > 1 ? 's' : ''}</strong> currently queued and ready to send.
+            <div style={{ ...styles.card, padding: 16 }}>
+              <div style={{...styles.cardHeader, padding: "0 0 12px 0", borderBottom: 'none'}}>
+                Queue ({queue.length})
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {queue.map((q, idx) => (
+                  <div key={q.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#1c1c1c", padding: "8px 12px", borderRadius: 6, border: `1px solid ${BORDER}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+                      {q.imgFiles && q.imgFiles[0] && (
+                        <div style={{ width: 32, height: 32, borderRadius: 4, overflow: "hidden", background: "#111111", flexShrink: 0 }}>
+                           <img src={URL.createObjectURL(q.imgFiles[0])} alt="thumbnail" style={{width: '100%', height:'100%', objectFit: 'cover'}} />
+                        </div>
+                      )}
+                      <span style={{ fontSize: 13, fontWeight: 500, color: editingId === q.id ? '#68d391' : TEXT_MAIN }}>
+                        Post #{idx + 1} ({q.imgFiles ? q.imgFiles.length : 0} image{(q.imgFiles ? q.imgFiles.length : 0) !== 1 ? 's' : ''})
+                        {editingId === q.id ? ' (Editing...)' : ''}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button style={{ ...styles.changeBtn, position: 'static', padding: "4px 10px", background: "transparent", color: TEXT_MAIN, boxShadow: 'none' }} onClick={() => editQueueItem(q.id)}>Edit</button>
+                      <button style={{ ...styles.changeBtn, position: 'static', padding: "4px 10px", background: "transparent", color: "#fc8181", border: "1px solid #3a1a1a", boxShadow: 'none' }} onClick={() => removeQueueItem(q.id)}>✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1092,7 +1147,7 @@ export default function App() {
               onClick={addToQueue}
               disabled={loading || imgFiles.length === 0}
             >
-              ➕ ADD TO QUEUE
+              {editingId ? "💾 UPDATE QUEUE" : "➕ ADD TO QUEUE"}
             </button>
             <button
               style={{ ...styles.sendBtn, marginTop: 0, flex: 1.5, ...(loading || (imgFiles.length === 0 && queue.length === 0) ? styles.sendBtnDisabled : {}) }}
