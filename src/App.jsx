@@ -360,9 +360,9 @@ export default function App() {
 
   const PRESET_PRICES = ["4.99", "5.99", "6.99", "7.50"];
 
-  const [botToken, setBotToken] = useState("");
-  const [chatId, setChatId] = useState("");
-  const [orderContact, setOrderContact] = useState("leapheaa28");
+  const [botToken, setBotToken] = useState(() => import.meta.env.VITE_BOT_TOKEN || localStorage.getItem("tg_botToken") || "");
+  const [chatId, setChatId] = useState(() => import.meta.env.VITE_CHAT_ID || localStorage.getItem("tg_chatId") || "");
+  const [orderContact, setOrderContact] = useState(() => import.meta.env.VITE_ORDER_CONTACT || localStorage.getItem("tg_orderContact") || "leapheaa28");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -372,22 +372,11 @@ export default function App() {
   const inputRef = useRef();
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("tg_botToken");
-    const savedChatId = localStorage.getItem("tg_chatId");
-    const savedContact = localStorage.getItem("tg_orderContact");
-    if (savedToken) setBotToken(savedToken);
-    if (savedChatId) setChatId(savedChatId);
-    if (savedContact) {
-      setOrderContact(savedContact);
-    } else {
-      setOrderContact("leapheaa28");
-    }
-
     // Auto open settings if no bot token to guide the user
-    if (!savedToken || !savedChatId) {
+    if (!botToken || !chatId) {
       setSettingsOpen(true);
     }
-  }, []);
+  }, [botToken, chatId]);
 
   useEffect(() => {
     let active = true;
