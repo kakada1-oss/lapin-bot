@@ -242,8 +242,15 @@ const styles = {
   },
 };
 
-const combineImages = async (files) => {
-  if (files.length === 1) return files[0];
+const getFileId = (f) => f.name + '_' + f.lastModified + '_' + f.size;
+
+const combineImages = async (files, transforms = {}) => {
+  if (files.length === 1) {
+    const fid = getFileId(files[0]);
+    const t = transforms[fid];
+    // If transformed, we might want to also bake it. Wait, just let 1 image stay normal for now.
+    return files[0];
+  }
 
   return new Promise((resolve) => {
     const imgElements = [];
@@ -285,19 +292,28 @@ const combineImages = async (files) => {
                 cellW = targetWidth / 2; cellH = targetHeight / 2;
               }
 
-              let sWidth = item.img.width;
-              let sHeight = item.img.height;
-              const cellAspect = cellW / cellH;
+              const fid = getFileId(files[idx]);
+              const t = transforms[fid] || { x: 0, y: 0, scale: 1 };
+              
+              const scaleToCover = Math.max(cellW / item.img.width, cellH / item.img.height);
+              const drawScale = scaleToCover * (t.scale || 1);
+              const drawW = item.img.width * drawScale;
+              const drawH = item.img.height * drawScale;
 
-              if (item.aspect > cellAspect) {
-                sWidth = sHeight * cellAspect;
-              } else {
-                sHeight = sWidth / cellAspect;
-              }
-              const sx = (item.img.width - sWidth) / 2;
-              const sy = (item.img.height - sHeight) / 2;
+              const centerX = cellX + gap + cellW / 2;
+              const centerY = cellY + gap + cellH / 2;
+              const panX = (t.x || 0) * cellW;
+              const panY = (t.y || 0) * cellH;
 
-              ctx.drawImage(item.img, sx, sy, sWidth, sHeight, cellX + gap, cellY + gap, cellW - gap * 2, cellH - gap * 2);
+              const drawX = centerX + panX - drawW / 2;
+              const drawY = centerY + panY - drawH / 2;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(cellX + gap, cellY + gap, cellW - gap * 2, cellH - gap * 2);
+              ctx.clip();
+              ctx.drawImage(item.img, drawX, drawY, drawW, drawH);
+              ctx.restore();
             });
           } else {
             const cols = files.length <= 4 ? 2 : 3;
@@ -314,20 +330,33 @@ const combineImages = async (files) => {
 
             imgElements.forEach((item, idx) => {
               if (!item) return;
-              const x = (idx % cols) * cellWidth;
-              const y = Math.floor(idx / cols) * cellWidth;
+              const cellX = (idx % cols) * cellWidth;
+              const cellY = Math.floor(idx / cols) * cellWidth;
+              const cellW = cellWidth;
+              const cellH = cellWidth;
 
-              let sWidth = item.img.width;
-              let sHeight = item.img.height;
-              if (item.aspect > 1) {
-                sWidth = sHeight;
-              } else {
-                sHeight = sWidth;
-              }
-              const sx = (item.img.width - sWidth) / 2;
-              const sy = (item.img.height - sHeight) / 2;
+              const fid = getFileId(files[idx]);
+              const t = transforms[fid] || { x: 0, y: 0, scale: 1 };
 
-              ctx.drawImage(item.img, sx, sy, sWidth, sHeight, x + gap, y + gap, cellWidth - gap * 2, cellWidth - gap * 2);
+              const scaleToCover = Math.max(cellW / item.img.width, cellH / item.img.height);
+              const drawScale = scaleToCover * (t.scale || 1);
+              const drawW = item.img.width * drawScale;
+              const drawH = item.img.height * drawScale;
+
+              const centerX = cellX + gap + cellW / 2;
+              const centerY = cellY + gap + cellH / 2;
+              const panX = (t.x || 0) * cellW;
+              const panY = (t.y || 0) * cellH;
+
+              const drawX = centerX + panX - drawW / 2;
+              const drawY = centerY + panY - drawH / 2;
+
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(cellX + gap, cellY + gap, cellW - gap * 2, cellH - gap * 2);
+              ctx.clip();
+              ctx.drawImage(item.img, drawX, drawY, drawW, drawH);
+              ctx.restore();
             });
           }
 
@@ -340,9 +369,90 @@ const combineImages = async (files) => {
   });
 };
 
+const InteractiveCell = ({ file, transform, onChange, style }) => {
+  const cellRef = useRef();
+  
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const scaleDelta = e.deltaY > 0 ? -0.1 : 0.1;
+    let newScale = (transform.scale || 1) + scaleDelta;
+    newScale = Math.max(0.5, Math.min(newScale, 5));
+    onChange({ ...transform, scale: newScale });
+  }, [transform, onChange]);
+
+  useEffect(() => {
+    const el = cellRef.current;
+    if (!el) return;
+    const cw = (e) => handleWheel(e);
+    el.addEventListener('wheel', cw, { passive: false });
+    return () => el.removeEventListener('wheel', cw);
+  }, [handleWheel]);
+
+  const handlePointerDown = (e) => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startTx = transform.x || 0;
+    const startTy = transform.y || 0;
+    
+    const onPointerMove = (moveE) => {
+      const rect = cellRef.current.getBoundingClientRect();
+      const dx = moveE.clientX - startX;
+      const dy = moveE.clientY - startY;
+      
+      onChange({
+        ...transform,
+        x: startTx + (dx / rect.width),
+        y: startTy + (dy / rect.height),
+      });
+    };
+    
+    const onPointerUp = () => {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+      document.removeEventListener('pointercancel', onPointerUp);
+    };
+    
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerUp);
+  };
+  
+  const tStr = `translate(${(transform.x || 0) * 100}%, ${(transform.y || 0) * 100}%) scale(${transform.scale || 1})`;
+  const imgUrl = file instanceof File ? URL.createObjectURL(file) : file;
+
+  return (
+    <div 
+      ref={cellRef}
+      style={{
+        ...style,
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#111',
+        cursor: 'grab',
+        touchAction: 'none'
+      }}
+      onPointerDown={handlePointerDown}
+    >
+      <img 
+        src={imgUrl} 
+        alt="cell"
+        draggable={false}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          transform: tStr,
+          pointerEvents: 'none',
+          willChange: 'transform'
+        }} 
+      />
+    </div>
+  );
+};
+
 export default function App() {
   const [imgFiles, setImgFiles] = useState([]);
-  const [collagePreview, setCollagePreview] = useState(null);
+  const [transforms, setTransforms] = useState({});
   const [dragging, setDragging] = useState(false);
   const [queue, setQueue] = useState([]);
   const [sendingProgress, setSendingProgress] = useState(null);
@@ -378,17 +488,7 @@ export default function App() {
     }
   }, [botToken, chatId]);
 
-  useEffect(() => {
-    let active = true;
-    if (imgFiles.length > 0) {
-      combineImages(imgFiles).then(file => {
-        if (active) setCollagePreview(URL.createObjectURL(file));
-      });
-    } else {
-      setCollagePreview(null);
-    }
-    return () => { active = false; };
-  }, [imgFiles]);
+
 
   const saveSettings = (token, chat, contact) => {
     setBotToken(token);
@@ -474,11 +574,11 @@ export default function App() {
 
   const addToQueue = () => {
     if (imgFiles.length === 0) return setError("Please upload at least one image.");
-    setQueue(prev => [...prev, { id: Date.now(), imgFiles, caption, buttons }]);
+    setQueue(prev => [...prev, { id: Date.now(), imgFiles, transforms, caption, buttons }]);
 
     // Reset form perfectly
     setImgFiles([]);
-    setCollagePreview(null);
+    setTransforms({});
     setCaption(captionTemplate);
     setButtons([
       { text: "🛒 Order here", url: "" },
@@ -493,9 +593,9 @@ export default function App() {
     // If we're currently building a post, add it to queue implicitly so it doesn't get left behind
     let currentQueue = [...queue];
     if (imgFiles.length > 0) {
-      currentQueue.push({ id: Date.now(), imgFiles, caption, buttons });
+      currentQueue.push({ id: Date.now(), imgFiles, transforms, caption, buttons });
       setImgFiles([]);
-      setCollagePreview(null);
+      setTransforms({});
       setCaption(captionTemplate);
     }
 
@@ -531,7 +631,7 @@ export default function App() {
 
   const sendPostData = async (postData) => {
     // Create collage if multiple images
-    const finalImageToSend = await combineImages(postData.imgFiles);
+    const finalImageToSend = await combineImages(postData.imgFiles, postData.transforms);
 
     const formData = new FormData();
     formData.append("chat_id", chatId);
@@ -718,11 +818,52 @@ export default function App() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Live Collage Preview */}
-            {collagePreview && (
+            {imgFiles.length === 1 && (
               <div style={{ ...styles.previewWrap, ...styles.card, border: `2px solid ${BORDER}` }}>
-                <img src={collagePreview} alt="Collage Preview" style={{ width: '100%', display: 'block' }} />
+                <img src={URL.createObjectURL(imgFiles[0])} alt="Preview" style={{ width: '100%', maxHeight: 380, objectFit: 'contain', display: 'block' }} />
                 <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.8)', padding: '4px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', color: ACCENT }}>
-                  LIVE PREVIEW
+                  SINGLE IMAGE
+                </div>
+              </div>
+            )}
+            
+            {imgFiles.length > 1 && (
+              <div style={{ ...styles.card, padding: 10, display: 'flex', flexDirection: 'column', gap: 10, border: `2px solid ${BORDER}` }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.05em', color: '#888', textTransform: 'uppercase', textAlign: 'center', fontWeight: 'bold' }}>
+                  Grid Preview (Drag to pan, Scroll to zoom)
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gap: '2px',
+                  background: BORDER,
+                  border: `2px solid ${BORDER}`,
+                  borderRadius: 8,
+                  overflow: 'hidden',
+                  gridTemplateColumns: imgFiles.length === 2 ? '1fr 1fr' : (imgFiles.length <= 4 ? '1fr 1fr' : 'repeat(3, 1fr)'),
+                  gridTemplateRows: imgFiles.length === 3 ? '1fr 1fr' : 'auto',
+                  aspectRatio: imgFiles.length === 3 || imgFiles.length === 4 ? '1' : 'auto'
+                }}>
+                  {imgFiles.map((file, i) => {
+                    const fid = getFileId(file);
+                    const t = transforms[fid] || { x: 0, y: 0, scale: 1 };
+                    
+                    const onChange = (newT) => {
+                      setTransforms(prev => ({ ...prev, [fid]: newT }));
+                    };
+                    
+                    let cellStyle = { backgroundColor: '#111' };
+                    if (imgFiles.length === 3 && i === 0) {
+                      cellStyle.gridRow = 'span 2';
+                      cellStyle.aspectRatio = '1 / 2';
+                    } else if (imgFiles.length !== 3 && imgFiles.length !== 4) {
+                      cellStyle.aspectRatio = '1 / 1';
+                    }
+                    if (imgFiles.length === 3 && i > 0) {
+                       cellStyle.aspectRatio = '1 / 1';
+                    }
+
+                    return <InteractiveCell key={fid} file={file} transform={t} onChange={onChange} style={cellStyle} />;
+                  })}
                 </div>
               </div>
             )}
