@@ -531,7 +531,7 @@ export default function App() {
   );
   const [buttons, setButtons] = useState([
     { text: "🛒 Order here", url: "" },
-    { text: "📍 Location", url: "https://maps.app.goo.gl/fkgwF1ecwueAm2DS6" }
+    { text: "📍 Location", url: "https://maps.app.goo.gl/w3X1KYZ7fNyWSJYs6" }
   ]);
 
   const PRESET_PRICES = ["4.99", "5.99", "6.99", "7.50"];
@@ -656,7 +656,7 @@ export default function App() {
     setCaption(captionTemplate);
     setButtons([
       { text: "🛒 Order here", url: "" },
-      { text: "📍 Location", url: "https://maps.app.goo.gl/fkgwF1ecwueAm2DS6" }
+      { text: "📍 Location", url: "https://maps.app.goo.gl/w3X1KYZ7fNyWSJYs6" }
     ]);
 
     setTimeout(() => setSuccess(null), 3000);
@@ -682,7 +682,7 @@ export default function App() {
       setImgFiles([]);
       setTransforms({});
       setCaption(captionTemplate);
-      setButtons([{ text: "🛒 Order here", url: "" }, { text: "📍 Location", url: "https://maps.app.goo.gl/fkgwF1ecwueAm2DS6" }]);
+      setButtons([{ text: "🛒 Order here", url: "" }, { text: "📍 Location", url: "https://maps.app.goo.gl/w3X1KYZ7fNyWSJYs6" }]);
     }
   };
 
